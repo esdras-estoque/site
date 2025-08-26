@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Cadastro de Produto</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="app">
+  <div class="container">
+    <h2 id="formTitle">Cadastro de Produto</h2>
+    <form id="productForm">
+      <label for="title">Título</label>
+      <input type="text" id="title" name="title" required>
+
+      <label for="codigo_barras">Código de Barras</label>
+      <input type="text" id="codigo_barras" name="codigo_barras" placeholder="Digite o código de barras">
+
+      <label for="categoria">Categoria</label>
+      <select id="categoria" name="categoria" required>
+        <option value="">Selecione uma categoria</option>
+        <option value="Ferramentas Manuais">Ferramentas Manuais</option>
+        <option value="Ferramentas Elétricas">Ferramentas Elétricas</option>
+        <option value="Materiais de Construção">Materiais de Construção</option>
+        <option value="Materiais Elétricos">Materiais Elétricos</option>
+        <option value="Hidráulica">Hidráulica</option>
+        <option value="Tintas e Acabamentos">Tintas e Acabamentos</option>
+        <option value="Madeiras e Portas">Madeiras e Portas</option>
+        <option value="EPI (Proteção)">EPI (Proteção)</option>
+        <option value="Iluminação">Iluminação</option>
+        <option value="Pisos e Revestimentos">Pisos e Revestimentos</option>
+        <option value="Jardinagem">Jardinagem</option>
+        <option value="Ferragens">Ferragens</option>
+        <option value="Telhas e Coberturas">Telhas e Coberturas</option>
+        <option value="Tubos e Conexões">Tubos e Conexões</option>
+        <option value="Cimento e Argamassa">Cimento e Argamassa</option>
+        <option value="Chapas e Metais">Chapas e Metais</option>
+        <option value="Produtos Químicos">Produtos Químicos</option>
+        <option value="Segurança e Sinalização">Segurança e Sinalização</option>
+        <option value="Aquecimento e Resfriamento">Aquecimento e Resfriamento</option>
+      </select>
+
+      <label for="marca">Marca</label>
+      <input type="text" id="marca" name="marca" placeholder="Digite a marca do produto">
+
+      <label for="valor">Valor (R$)</label>
+      <input type="number" step="0.01" id="valor" name="valor" placeholder="Ex: 199.90">
+
+      <label for="desconto">Desconto (%)</label>
+      <input type="number" step="0.01" id="desconto" name="desconto" placeholder="Ex: 10">
+
+      <label for="image">Fotos do Produto</label>
+      <input type="file" id="image" name="image" accept="image/*" multiple>
+
+      <div id="preview" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;"></div>
+
+      <label for="description">Descrição</label>
+      <textarea id="description" name="description"></textarea>
+
+      <button type="submit" class="btn primary">Salvar</button>
+      <a href="produtos.html" class="btn ghost">Cancelar</a>
+    </form>
+  </div>
+
+<script>
+  let imagesBase64 = []
+  let editId = null
+
+  const imageInput = document.getElementById('image')
+  const previewEl = document.getElementById('preview')
+
+  function renderPreview() {
+    previewEl.innerHTML = ''
+    imagesBase64.forEach((src, i) => {
+      const wrap = document.createElement('div')
+      wrap.style.position = 'relative'
+      wrap.style.display = 'inline-block'
+
+      const img = document.createElement('img')
+      img.src = src
+      img.alt = `Imagem ${i+1}`
+      img.style.width = '100px'
+      img.style.height = '100px'
+      img.style.objectFit = 'cover'
+      img.style.border = '1px solid #ccc'
+      img.style.borderRadius = '4px'
+
+      const removeBtn = document.createElement('button')
+      removeBtn.type = 'button'
+      removeBtn.textContent = '×'
+      removeBtn.title = 'Remover'
+      removeBtn.style.position = 'absolute'
+      removeBtn.style.top = '2px'
+      removeBtn.style.right = '2px'
+      removeBtn.style.width = '22px'
+      removeBtn.style.height = '22px'
+      removeBtn.style.border = 'none'
+      removeBtn.style.borderRadius = '50%'
+      removeBtn.style.background = 'rgba(0,0,0,0.6)'
+      removeBtn.style.color = '#fff'
+      removeBtn.style.cursor = 'pointer'
+      removeBtn.addEventListener('click', () => {
+        imagesBase64.splice(i, 1)
+        renderPreview()
+      })
+
+      wrap.appendChild(img)
+      wrap.appendChild(removeBtn)
+      previewEl.appendChild(wrap)
+    })
+  }
+
+  function addFiles(files) {
+    const list = Array.from(files || [])
+    if (!list.length) return
+    list.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (evt) => {
+        imagesBase64.push(evt.target.result)
+        renderPreview()
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  imageInput.addEventListener('change', (e) => {
+    addFiles(e.target.files)
+    imageInput.value = ''
+  })
+
+  document.getElementById('productForm').addEventListener('submit', async (e) => {
+    e.preventDefault()
+
+    const title = document.getElementById('title').value
+    const codigo_barras = document.getElementById('codigo_barras').value
+    const categoria = document.getElementById('categoria').value
+    const marca = document.getElementById('marca').value
+    const valor = document.getElementById('valor').value || null
+    const desconto = document.getElementById('desconto').value || null
+    const description = document.getElementById('description').value
+
+    const payload = {
+      title,
+      codigo_barras,
+      categoria,
+      marca,
+      valor,
+      desconto,
+      images: imagesBase64,
+      description
+    }
+
+    try {
+      const response = await fetch('salvar-produto.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert('Produto cadastrado com sucesso!')
+        window.location.href = 'produtos.html'
+      } else {
+        alert('Erro ao salvar: ' + result.message)
+      }
+
+    } catch (error) {
+      console.error(error)
+      alert('Erro na requisição: ' + error.message)
+    }
+  })
+</script>
+</body>
+</html>
